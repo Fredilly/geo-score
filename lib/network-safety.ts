@@ -1,4 +1,4 @@
-import { normalizeWebsiteUrl } from "./website-url";
+import { normalizeWebsiteUrl } from "./website-url.ts";
 
 const BLOCKED_HOSTNAMES = new Set([
   "localhost",
