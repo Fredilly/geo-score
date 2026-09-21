@@ -1,7 +1,7 @@
 import {
   assertPublicDns,
   normalizeAndValidatePublicUrl,
-} from "./network-safety";
+} from "./network-safety.ts";
 
 const USER_AGENT = "Article6-Signal/1.0 (+https://signal.article6.org)";
 const MAX_REDIRECTS = 5;
