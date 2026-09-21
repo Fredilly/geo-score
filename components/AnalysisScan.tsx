@@ -10,6 +10,9 @@ type AnalysisResponse = {
   score?: {
     state?: "scored" | "insufficient_evidence";
     score?: number | null;
+    dimensions?: Array<{ name: string; score: number | null; coverage: number }>;
+    findings?: Array<{ id: string; title: string; explanation: string; evidence: string[] }>;
+    opportunityCount?: number;
   };
   error?: string;
   state?: "unavailable";
@@ -30,6 +33,9 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
   const [state, setState] = useState<ScanState>("loading");
   const [message, setMessage] = useState("Collecting public website evidence.");
   const [score, setScore] = useState<number | null>(null);
+  const [dimensions, setDimensions] = useState<NonNullable<AnalysisResponse["score"]>["dimensions"]>([]);
+  const [findings, setFindings] = useState<NonNullable<AnalysisResponse["score"]>["findings"]>([]);
+  const [opportunityCount, setOpportunityCount] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -50,6 +56,9 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
         }
 
         setScore(payload.score?.score ?? null);
+        setDimensions(payload.score?.dimensions ?? []);
+        setFindings(payload.score?.findings ?? []);
+        setOpportunityCount(payload.score?.opportunityCount ?? 0);
 
         if (payload.evidence?.state === "partial" || payload.score?.state === "insufficient_evidence") {
           setState("partial");

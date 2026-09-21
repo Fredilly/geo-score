@@ -31,6 +31,13 @@ export type PublicDimensionScore = {
   evidence: string[];
 };
 
+export type PublicFinding = {
+  id: string;
+  title: string;
+  explanation: string;
+  evidence: string[];
+};
+
 export type GeoScoreResult = {
   scoringVersion: string;
   label: "Article6 GEO Diagnostic Score";
@@ -41,6 +48,8 @@ export type GeoScoreResult = {
   state: "scored" | "insufficient_evidence";
   criteria: CriterionResult[];
   dimensions: PublicDimensionScore[];
+  findings: PublicFinding[];
+  opportunityCount: number;
 };
 
 type CriterionInput = Omit<CriterionResult, "earned" | "status"> & {
@@ -392,6 +401,10 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
   const score = assessedPoints >= 60 ? Math.round((earnedPoints / assessedPoints) * 100) : null;
 
   const dimensions = buildPublicDimensions(results);
+  const failed = results
+    .filter((criterion) => criterion.status === "fail")
+    .sort((a, b) => b.weight - a.weight);
+  const findings = failed.slice(0, 3).map(toPublicFinding);
 
   return {
     scoringVersion: SCORING_VERSION,
@@ -403,6 +416,8 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
     state: score === null ? "insufficient_evidence" : "scored",
     criteria: results,
     dimensions,
+    findings,
+    opportunityCount: Math.max(0, failed.length - findings.length),
   };
 }
 
@@ -429,4 +444,99 @@ function buildPublicDimensions(criteria: CriterionResult[]): PublicDimensionScor
       evidence: assessed.flatMap((criterion) => criterion.evidence).slice(0, 6),
     };
   });
+}
+
+
+function toPublicFinding(criterion: CriterionResult): PublicFinding {
+  const copy: Record<string, { title: string; explanation: string }> = {
+    "crawl.robots": {
+      title: "Crawler instructions are unclear",
+      explanation: "We could not confirm a usable robots.txt signal.",
+    },
+    "crawl.sitemap": {
+      title: "Your sitemap is missing or unclear",
+      explanation: "Search and AI systems have less help discovering your important pages.",
+    },
+    "crawl.canonical": {
+      title: "The homepage canonical is missing",
+      explanation: "Machines have less guidance about the preferred version of your homepage.",
+    },
+    "technical.readable_html": {
+      title: "Important content is hard to extract",
+      explanation: "Too little readable page text was available for a strong machine-readable signal.",
+    },
+    "technical.headings": {
+      title: "Page structure is weak",
+      explanation: "Clear headings help machines understand what each section is about.",
+    },
+    "technical.internal_links": {
+      title: "Internal navigation is hard to follow",
+      explanation: "Machines have fewer visible paths to discover related pages.",
+    },
+    "technical.metadata": {
+      title: "Homepage metadata is incomplete",
+      explanation: "The page title or description is missing, weakening basic context.",
+    },
+    "schema.presence": {
+      title: "Structured data is missing",
+      explanation: "We found no JSON-LD to help machines interpret the site.",
+    },
+    "entity.identity": {
+      title: "Your business identity is not explicit enough",
+      explanation: "The homepage does not clearly connect the site title and primary heading.",
+    },
+    "entity.services": {
+      title: "What you sell is not explicit",
+      explanation: "Services or products are not clearly stated in the readable page content.",
+    },
+    "entity.people": {
+      title: "Authority signals are weak",
+      explanation: "The site does not clearly surface the people or expertise behind the business.",
+    },
+    "answers.extractable_facts": {
+      title: "Key facts are too thin",
+      explanation: "There is not enough readable content for machines to extract important facts confidently.",
+    },
+    "answers.structure": {
+      title: "Answers are not well structured",
+      explanation: "Important information is not organized with enough clear headings.",
+    },
+    "answers.topical_links": {
+      title: "Related topics are weakly connected",
+      explanation: "Internal links do not clearly connect enough relevant pages.",
+    },
+    "trust.credibility": {
+      title: "Credibility is difficult to verify",
+      explanation: "The visible content does not clearly surface expertise, team, or credentials.",
+    },
+    "trust.contact": {
+      title: "Contact information is hard to find",
+      explanation: "Machines and customers need a clear way to verify and reach the business.",
+    },
+    "trust.examples": {
+      title: "Proof is thin",
+      explanation: "Case studies, examples, clients, or results are not clearly visible.",
+    },
+    "trust.sources": {
+      title: "Claims lack visible support",
+      explanation: "Sources, research, methodology, or evidence are not clearly surfaced.",
+    },
+    "content.specific_examples": {
+      title: "The content feels too generic",
+      explanation: "Specific processes, examples, or case-study language are not clearly visible.",
+    },
+  };
+
+  const fallback = {
+    title: criterion.label,
+    explanation: criterion.explanation,
+  };
+  const selected = copy[criterion.id] ?? fallback;
+
+  return {
+    id: criterion.id,
+    title: selected.title,
+    explanation: selected.explanation,
+    evidence: criterion.evidence.slice(0, 2),
+  };
 }

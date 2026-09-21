@@ -104,3 +104,13 @@ test("public dimensions are derived from assessed rubric criteria", () => {
   );
   assert.ok(result.dimensions.every((dimension) => dimension.coverage >= 0 && dimension.coverage <= 100));
 });
+
+
+test("free result exposes at most three failed findings and counts the rest", () => {
+  const result = scoreWebsiteEvidence(fixture());
+  const failed = result.criteria.filter((criterion) => criterion.status === "fail");
+
+  assert.ok(result.findings.length <= 3);
+  assert.equal(result.opportunityCount, Math.max(0, failed.length - result.findings.length));
+  assert.ok(result.findings.every((finding) => finding.title && finding.explanation));
+});
