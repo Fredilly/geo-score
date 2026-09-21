@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parsePageEvidence } from "../lib/evidence.ts";
+import { isRedirectStatus, parsePageEvidence } from "../lib/evidence.ts";
 
 test("extracts bounded page evidence without scoring it", () => {
   const html = `
@@ -37,4 +37,15 @@ test("extracts bounded page evidence without scoring it", () => {
   assert.equal(evidence.structuredDataBlocks, 1);
   assert.match(evidence.readableText, /Useful public evidence/);
   assert.doesNotMatch(evidence.readableText, /secretNoise/);
+});
+
+
+test("only actual redirect status codes require a Location header", () => {
+  for (const status of [301, 302, 303, 307, 308]) {
+    assert.equal(isRedirectStatus(status), true, String(status));
+  }
+
+  for (const status of [200, 204, 300, 304, 305, 306, 399, 400]) {
+    assert.equal(isRedirectStatus(status), false, String(status));
+  }
 });
