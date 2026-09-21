@@ -10,6 +10,9 @@ type AnalysisResponse = {
   score?: {
     state?: "scored" | "insufficient_evidence";
     score?: number | null;
+    dimensions?: Array<{ name: string; score: number | null; coverage: number }>;
+    findings?: Array<{ id: string; title: string; explanation: string; evidence: string[] }>;
+    opportunityCount?: number;
   };
   error?: string;
   state?: "unavailable";
