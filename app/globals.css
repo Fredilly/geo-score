@@ -322,3 +322,54 @@ footer {
     50% { box-shadow: 0 0 30px rgba(47,124,255,.9); }
   }
 }
+
+
+.input-frame-error {
+  border-color: rgba(255, 103, 103, .62);
+  box-shadow:
+    0 0 0 4px rgba(255, 103, 103, .09),
+    0 28px 90px rgba(0,0,0,.38);
+}
+
+.note-error {
+  color: #ff9b9b;
+}
+
+.input-frame button {
+  cursor: pointer;
+  transition: transform .16s ease, opacity .16s ease, background-color .16s ease;
+}
+
+.input-frame button:not(:disabled):active {
+  transform: scale(.98);
+}
+
+.analyze-handoff h1 {
+  overflow-wrap: anywhere;
+}
+
+.handoff-details {
+  margin: 34px 0 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.handoff-details div {
+  padding: 15px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.handoff-details dt {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.handoff-details dd {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
