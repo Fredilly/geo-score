@@ -1,3 +1,5 @@
+import AnalyzerForm from "@/components/AnalyzerForm";
+
 export default function HomePage() {
   return (
     <main className="shell">
@@ -23,33 +25,7 @@ export default function HomePage() {
           can access, understand, and trust it.
         </p>
 
-        <form className="analyzer" action="#" aria-label="Website analysis">
-          <label className="sr-only" htmlFor="website">
-            Website URL
-          </label>
-          <div className="input-frame">
-            <span className="protocol" aria-hidden="true">↗</span>
-            <input
-              id="website"
-              name="website"
-              type="url"
-              inputMode="url"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder="yourwebsite.com"
-              aria-describedby="analyzer-note"
-            />
-            <button type="submit" disabled aria-describedby="analyzer-note">
-              <span className="button-mobile">Analyze</span>
-              <span className="button-desktop">Run analysis</span>
-              <span aria-hidden="true">→</span>
-            </button>
-          </div>
-          <p id="analyzer-note" className="note">
-            Live analysis arrives in the next build. No demo score will be shown.
-          </p>
-        </form>
+        <AnalyzerForm />
 
         <div className="metrics" aria-label="What Signal measures">
           <div><span>01</span><strong>Access</strong></div>
