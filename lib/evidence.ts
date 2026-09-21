@@ -5,6 +5,7 @@ import {
 
 const USER_AGENT = "Article6-Signal/1.0 (+https://signal.article6.org)";
 const MAX_REDIRECTS = 5;
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 const HOME_MAX_BYTES = 512_000;
 const AUX_MAX_BYTES = 128_000;
 const PAGE_MAX_BYTES = 256_000;
@@ -118,8 +119,12 @@ async function collectAuxiliary(
 
 async function safeFetchText(startUrl: URL, maxBytes: number): Promise<SafeFetchResult> {
   let current = new URL(startUrl);
+  const visited = new Set<string>();
 
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+    const currentKey = current.toString();
+    if (visited.has(currentKey)) throw new Error("redirect_loop");
+    visited.add(currentKey);
     const validated = normalizeAndValidatePublicUrl(current.toString());
     if (!validated.ok) throw new Error("blocked_address");
 
@@ -138,7 +143,7 @@ async function safeFetchText(startUrl: URL, maxBytes: number): Promise<SafeFetch
         },
       });
 
-      if (response.status >= 300 && response.status < 400) {
+      if (REDIRECT_STATUSES.has(response.status)) {
         const location = response.headers.get("location");
         if (!location) throw new Error("invalid_redirect");
         current = new URL(location, validated.url);
@@ -305,6 +310,9 @@ function toPublicCollectionError(error: unknown): string {
   const message = error instanceof Error ? error.message : "";
   if (message === "blocked_address") return "That address is not a public website.";
   if (message === "response_too_large") return "The website response is too large to analyze safely.";
+  if (message === "redirect_loop") {
+    return "The website is stuck in a redirect loop.";
+  }
   if (message === "too_many_redirects" || message === "invalid_redirect") {
     return "The website redirects could not be analyzed safely.";
   }
