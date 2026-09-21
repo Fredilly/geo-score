@@ -6,6 +6,10 @@ import {
 const USER_AGENT = "Article6-Signal/1.0 (+https://signal.article6.org)";
 const MAX_REDIRECTS = 5;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+export function isRedirectStatus(status: number): boolean {
+  return REDIRECT_STATUSES.has(status);
+}
 const HOME_MAX_BYTES = 512_000;
 const AUX_MAX_BYTES = 128_000;
 const PAGE_MAX_BYTES = 256_000;
@@ -143,7 +147,7 @@ async function safeFetchText(startUrl: URL, maxBytes: number): Promise<SafeFetch
         },
       });
 
-      if (REDIRECT_STATUSES.has(response.status)) {
+      if (isRedirectStatus(response.status)) {
         const location = response.headers.get("location");
         if (!location) throw new Error("invalid_redirect");
         current = new URL(location, validated.url);
