@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import LeadForm from "@/components/LeadForm";
 
 type AnalysisResponse = {
   evidence?: {
@@ -36,6 +37,7 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
   const [dimensions, setDimensions] = useState<NonNullable<AnalysisResponse["score"]>["dimensions"]>([]);
   const [findings, setFindings] = useState<NonNullable<AnalysisResponse["score"]>["findings"]>([]);
   const [opportunityCount, setOpportunityCount] = useState(0);
+  const [showLeadForm, setShowLeadForm] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
