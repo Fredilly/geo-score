@@ -441,10 +441,10 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
     assessedPoints,
     coverage,
     state:
-      assessedPoints < MIN_SCORE_COVERAGE
-        ? "insufficient_evidence"
-        : !businessApplicable
-          ? "not_applicable"
+      !businessApplicable
+        ? "not_applicable"
+        : assessedPoints < MIN_SCORE_COVERAGE
+          ? "insufficient_evidence"
           : score === null
             ? "insufficient_evidence"
             : "scored",
