@@ -1,6 +1,7 @@
 import type { WebsiteEvidence } from "./evidence.ts";
 
-export const SCORING_VERSION = "geo-v1.0.0";
+export const SCORING_VERSION = "geo-v1.1.0";
+export const MIN_SCORE_COVERAGE = 75;
 
 export type CriterionStatus = "pass" | "fail" | "unavailable";
 
@@ -421,7 +422,7 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
   const earnedPoints = results.reduce((sum, criterion) => sum + criterion.earned, 0);
   const coverage = Math.round(assessedPoints);
   const score =
-    businessApplicable && assessedPoints >= 60
+    businessApplicable && assessedPoints >= MIN_SCORE_COVERAGE
       ? Math.round((earnedPoints / assessedPoints) * 100)
       : null;
 
@@ -440,7 +441,7 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
     assessedPoints,
     coverage,
     state:
-      assessedPoints < 60
+      assessedPoints < MIN_SCORE_COVERAGE
         ? "insufficient_evidence"
         : !businessApplicable
           ? "not_applicable"
@@ -580,10 +581,93 @@ function toPublicFinding(criterion: CriterionResult): PublicFinding {
 function buildCheckGroups(criteria: CriterionResult[], evidence: WebsiteEvidence): PublicCheckGroup[] {
   const byId = new Map(criteria.map((criterion) => [criterion.id, criterion]));
 
+  const plainEnglish: Record<string, Partial<Record<CriterionStatus, string>>> = {
+    "crawl.homepage_status": {
+      pass: "The homepage loads normally.",
+      fail: "The homepage returned an error, so machines may not be able to read it.",
+    },
+    "crawl.robots": {
+      pass: "Crawler instructions are available.",
+      fail: "No usable robots.txt was found, so crawler instructions are unclear.",
+      unavailable: "We could not verify crawler instructions.",
+    },
+    "crawl.sitemap": {
+      pass: "A sitemap gives machines a clean map of important pages.",
+      fail: "No sitemap was found, so machines have less help discovering important pages.",
+      unavailable: "We could not verify a sitemap.",
+    },
+    "crawl.canonical": {
+      pass: "Search engines can see which homepage URL is the primary version.",
+      fail: "The homepage does not declare a primary URL.",
+    },
+    "technical.internal_links": {
+      pass: "The site exposes internal links that machines can follow.",
+      fail: "Too few internal links were visible for machines to follow.",
+    },
+    "technical.readable_html": {
+      pass: "Important page content is available as readable text.",
+      fail: "Too little important content was available as readable text.",
+    },
+    "technical.metadata": {
+      pass: "The homepage has a title and description that explain the page.",
+      fail: "The homepage title or description is missing.",
+    },
+    "technical.headings": {
+      pass: "Headings give the page a clear machine-readable structure.",
+      fail: "The page has too little heading structure.",
+    },
+    "schema.presence": {
+      pass: "Structured data is present to help machines interpret the site.",
+      fail: "No structured data was found.",
+    },
+    "entity.identity": {
+      pass: "The business identity is explicit on the homepage.",
+      fail: "The homepage does not make the business identity explicit enough.",
+    },
+    "entity.services": {
+      pass: "The site clearly states its services or products.",
+      fail: "The site does not clearly state its services or products.",
+    },
+    "entity.people": {
+      pass: "People or authority signals are visible.",
+      fail: "The people or expertise behind the business are not clearly surfaced.",
+    },
+    "answers.extractable_facts": {
+      pass: "The page contains enough readable information for machines to extract key facts.",
+      fail: "There is too little readable information for confident fact extraction.",
+    },
+    "answers.structure": {
+      pass: "Information is organized into sections that support concise answers.",
+      fail: "Important information is not organized clearly enough for concise answers.",
+    },
+    "answers.topical_links": {
+      pass: "Related pages are connected with internal links.",
+      fail: "Related topics are not connected strongly enough.",
+    },
+    "trust.credibility": {
+      pass: "Credibility or expertise signals are visible.",
+      fail: "Credibility or expertise is difficult to verify from the visible content.",
+    },
+    "trust.contact": {
+      pass: "Contact or company information is easy to find.",
+      fail: "Contact or company information is hard to verify.",
+    },
+    "trust.examples": {
+      pass: "Examples, case studies, clients, or results are visible.",
+      fail: "The site shows little visible proof through examples, case studies, clients, or results.",
+    },
+    "trust.sources": {
+      pass: "Sources, research, methodology, or evidence are visible.",
+      fail: "Claims have little visible supporting evidence.",
+    },
+  };
+
   const fromCriterion = (id: string, label: string): PublicCheck => {
     const criterion = byId.get(id);
     if (!criterion) return { label, status: "unavailable", detail: "Not checked." };
-    const detail = criterion.evidence[0] || criterion.explanation;
+    const detail =
+      plainEnglish[id]?.[criterion.status] ??
+      (criterion.status === "unavailable" ? "This check was not available." : criterion.explanation);
     return { label, status: criterion.status, detail };
   };
 
@@ -621,9 +705,9 @@ function buildCheckGroups(criteria: CriterionResult[], evidence: WebsiteEvidence
         fromCriterion("crawl.canonical", "Canonical URL"),
         fromCriterion("technical.internal_links", "Internal links"),
         {
-          label: "llms.txt",
+          label: "llms.txt (optional)",
           status: evidence.llms.present ? "pass" : "unavailable",
-          detail: evidence.llms.present ? "Present. Informational only." : "Not found. Optional / informational.",
+          detail: evidence.llms.present ? "Present. Optional and not part of the score." : "Not found. Optional and not part of the score.",
         },
       ],
     },
