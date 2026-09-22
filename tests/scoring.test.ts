@@ -39,8 +39,8 @@ function fixture(): WebsiteEvidence {
         structuredDataBlocks: 0,
       },
     ],
-    robots: { url: "https://example.com/robots.txt", status: 200, present: true },
-    sitemap: { url: "https://example.com/sitemap.xml", status: 200, present: true },
+    robots: { url: "https://example.com/robots.txt", status: 200, present: true, aiAccess: "allowed", blockedBots: [] },
+    sitemap: { url: "https://example.com/sitemap.xml", status: 200, present: true },\n    llms: { url: "https://example.com/llms.txt", status: 404, present: false },
   };
 }
 
@@ -87,8 +87,8 @@ test("low evidence coverage withholds the overall score", () => {
       structuredDataBlocks: 0,
     },
     pages: [],
-    robots: { url: "https://example.com/robots.txt", status: null, present: false },
-    sitemap: { url: "https://example.com/sitemap.xml", status: null, present: false },
+    robots: { url: "https://example.com/robots.txt", status: null, present: false, aiAccess: "unknown", blockedBots: [] },
+    sitemap: { url: "https://example.com/sitemap.xml", status: null, present: false },\n    llms: { url: "https://example.com/llms.txt", status: null, present: false },
   };
 
   const result = scoreWebsiteEvidence(sparse);
@@ -113,4 +113,32 @@ test("free result exposes at most three failed findings and counts the rest", ()
   assert.ok(result.findings.length <= 3);
   assert.equal(result.opportunityCount, Math.max(0, failed.length - result.findings.length));
   assert.ok(result.findings.every((finding) => finding.title && finding.explanation));
+});
+
+
+test("utility-style sites do not receive a misleading business GEO score", () => {
+  const utility: WebsiteEvidence = {
+    ...fixture(),
+    homepage: {
+      ...fixture().homepage!,
+      title: "Search",
+      description: "Search the web.",
+      headings: ["Search"],
+      readableText: "Search Images Maps News Sign in Settings Help Privacy Terms",
+    },
+    pages: [],
+  };
+
+  const result = scoreWebsiteEvidence(utility);
+  assert.equal(result.businessApplicable, false);
+  assert.equal(result.score, null);
+  assert.equal(result.state, "not_applicable");
+});
+
+test("practical GEO check groups are always exposed", () => {
+  const result = scoreWebsiteEvidence(fixture());
+  assert.deepEqual(
+    result.checkGroups.map((group) => group.name),
+    ["AI access", "Site discovery", "Machine understanding", "Business clarity", "Answerability", "Trust & proof"],
+  );
 });
