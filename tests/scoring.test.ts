@@ -126,7 +126,7 @@ test("utility-style sites do not receive a misleading business GEO score", () =>
       title: "Search",
       description: "Search the web.",
       headings: ["Search"],
-      readableText: "Search Images Maps News Sign in Settings Help Privacy Terms",
+      readableText: "Search Images Maps News Sign in Settings Help Privacy Terms ".repeat(20),
     },
     pages: [],
   };
