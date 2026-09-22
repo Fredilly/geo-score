@@ -103,10 +103,82 @@ export async function collectWebsiteEvidence(input: string): Promise<WebsiteEvid
   };
 }
 
+
+const AI_BOTS = ["GPTBot", "OAI-SearchBot", "ChatGPT-User", "PerplexityBot", "ClaudeBot"];
+
+export function blockedAiBotsFromRobots(content: string): string[] {
+  const lines = content
+    .split(/\r?\n/)
+    .map((line) => line.replace(/#.*$/, "").trim())
+    .filter(Boolean);
+
+  const groups: Array<{ agents: string[]; rules: Array<{ kind: "allow" | "disallow"; path: string }> }> = [];
+  let current: { agents: string[]; rules: Array<{ kind: "allow" | "disallow"; path: string }> } | null = null;
+
+  for (const line of lines) {
+    const [rawKey, ...rest] = line.split(":");
+    const key = rawKey?.trim().toLowerCase();
+    const value = rest.join(":").trim();
+
+    if (key === "user-agent") {
+      if (!current || current.rules.length > 0) {
+        current = { agents: [], rules: [] };
+        groups.push(current);
+      }
+      current.agents.push(value.toLowerCase());
+      continue;
+    }
+
+    if ((key === "allow" || key === "disallow") && current) {
+      current.rules.push({ kind: key, path: value });
+    }
+  }
+
+  function blocked(bot: string): boolean {
+    const lower = bot.toLowerCase();
+    const matching = groups.filter((group) => group.agents.includes(lower));
+    const candidates = matching.length ? matching : groups.filter((group) => group.agents.includes("*"));
+    for (const group of candidates) {
+      for (const rule of group.rules) {
+        if (rule.kind === "disallow" && rule.path === "/") return true;
+        if (rule.kind === "allow" && rule.path === "/") return false;
+      }
+    }
+    return false;
+  }
+
+  return AI_BOTS.filter(blocked);
+}
+
+async function collectRobots(url: URL, warnings: string[]) {
+  try {
+    const result = await safeFetchText(url, AUX_MAX_BYTES);
+    const present = result.response.ok && result.body.trim().length > 0;
+    const blockedBots = present ? blockedAiBotsFromRobots(result.body) : [];
+
+    return {
+      url: result.finalUrl.toString(),
+      status: result.response.status,
+      present,
+      aiAccess: present ? (blockedBots.length ? "blocked" : "allowed") as const : "unknown" as const,
+      blockedBots,
+    };
+  } catch {
+    warnings.push("Could not verify robots.");
+    return {
+      url: url.toString(),
+      status: null,
+      present: false,
+      aiAccess: "unknown" as const,
+      blockedBots: [],
+    };
+  }
+}
+
 async function collectAuxiliary(
   url: URL,
   warnings: string[],
-  label: "robots" | "sitemap",
+  label: "sitemap" | "llms",
 ) {
   try {
     const result = await safeFetchText(url, AUX_MAX_BYTES);
