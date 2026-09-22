@@ -65,10 +65,12 @@ export async function collectWebsiteEvidence(input: string): Promise<WebsiteEvid
   const origin = finalUrl.origin;
   const robotsUrl = new URL("/robots.txt", origin);
   const sitemapUrl = new URL("/sitemap.xml", origin);
+  const llmsUrl = new URL("/llms.txt", origin);
 
-  const [robots, sitemap] = await Promise.all([
-    collectAuxiliary(robotsUrl, warnings, "robots"),
+  const [robots, sitemap, llms] = await Promise.all([
+    collectRobots(robotsUrl, warnings),
     collectAuxiliary(sitemapUrl, warnings, "sitemap"),
+    collectAuxiliary(llmsUrl, warnings, "llms"),
   ]);
 
   const candidateLinks = homepage.internalLinks
@@ -100,6 +102,7 @@ export async function collectWebsiteEvidence(input: string): Promise<WebsiteEvid
     pages,
     robots,
     sitemap,
+    llms,
   };
 }
 
