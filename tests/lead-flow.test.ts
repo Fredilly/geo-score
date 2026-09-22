@@ -29,6 +29,6 @@ test("done-for-you form contains the required qualification fields", () => {
 test("results page exposes diagnosis before the service enquiry CTA", () => {
   assert.match(scan, /dimension-grid/);
   assert.match(scan, /Top findings/);
-  assert.match(scan, /Improve my score/);
+  assert.match(scan, /Have Article6 fix this/);
   assert.match(scan, /LeadForm/);
 });
