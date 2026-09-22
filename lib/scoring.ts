@@ -437,11 +437,14 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
     earnedPoints,
     assessedPoints,
     coverage,
-    state: !businessApplicable
-      ? "not_applicable"
-      : score === null
+    state:
+      assessedPoints < 60
         ? "insufficient_evidence"
-        : "scored",
+        : !businessApplicable
+          ? "not_applicable"
+          : score === null
+            ? "insufficient_evidence"
+            : "scored",
     criteria: results,
     dimensions,
     findings,
