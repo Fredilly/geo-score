@@ -38,6 +38,19 @@ export type PublicFinding = {
   evidence: string[];
 };
 
+export type PublicCheck = {
+  label: string;
+  status: "pass" | "fail" | "unavailable";
+  detail: string;
+};
+
+export type PublicCheckGroup = {
+  name: "AI access" | "Site discovery" | "Machine understanding" | "Business clarity" | "Answerability" | "Trust & proof";
+  question: string;
+  status: "good" | "needs_attention" | "unknown";
+  checks: PublicCheck[];
+};
+
 export type GeoScoreResult = {
   scoringVersion: string;
   label: "Article6 GEO Diagnostic Score";
@@ -45,7 +58,7 @@ export type GeoScoreResult = {
   earnedPoints: number;
   assessedPoints: number;
   coverage: number;
-  state: "scored" | "insufficient_evidence";
+  state: "scored" | "insufficient_evidence" | "not_applicable";
   criteria: CriterionResult[];
   dimensions: PublicDimensionScore[];
   findings: PublicFinding[];
@@ -65,6 +78,13 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
   const allHeadings = pages.flatMap((page) => page!.headings);
   const hasHomepage = Boolean(homepage);
   const hasUsableText = Boolean(homepage && homepage.readableText.length >= 200);
+  const businessSignals = [
+    /(services?|solutions?|products?|platform)/i.test(allText),
+    /(contact|sales|pricing|quote|book a demo|request a demo)/i.test(allText),
+    /(about us|our team|founder|leadership|company)/i.test(allText),
+    /(clients?|customers?|case stud|portfolio)/i.test(allText),
+  ].filter(Boolean).length;
+  const businessApplicable = businessSignals >= 2;
 
   const criteria: CriterionInput[] = [
     {
@@ -398,13 +418,17 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
 
   const earnedPoints = results.reduce((sum, criterion) => sum + criterion.earned, 0);
   const coverage = Math.round(assessedPoints);
-  const score = assessedPoints >= 60 ? Math.round((earnedPoints / assessedPoints) * 100) : null;
+  const score =
+    businessApplicable && assessedPoints >= 60
+      ? Math.round((earnedPoints / assessedPoints) * 100)
+      : null;
 
   const dimensions = buildPublicDimensions(results);
   const failed = results
     .filter((criterion) => criterion.status === "fail")
     .sort((a, b) => b.weight - a.weight);
   const findings = failed.slice(0, 3).map(toPublicFinding);
+  const checkGroups = buildCheckGroups(results, evidence);
 
   return {
     scoringVersion: SCORING_VERSION,
@@ -413,7 +437,11 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
     earnedPoints,
     assessedPoints,
     coverage,
-    state: score === null ? "insufficient_evidence" : "scored",
+    state: !businessApplicable
+      ? "not_applicable"
+      : score === null
+        ? "insufficient_evidence"
+        : "scored",
     criteria: results,
     dimensions,
     findings,
@@ -539,4 +567,109 @@ function toPublicFinding(criterion: CriterionResult): PublicFinding {
     explanation: selected.explanation,
     evidence: criterion.evidence.slice(0, 2),
   };
+}
+
+
+function buildCheckGroups(criteria: CriterionResult[], evidence: WebsiteEvidence): PublicCheckGroup[] {
+  const byId = new Map(criteria.map((criterion) => [criterion.id, criterion]));
+
+  const fromCriterion = (id: string, label: string): PublicCheck => {
+    const criterion = byId.get(id);
+    if (!criterion) return { label, status: "unavailable", detail: "Not checked." };
+    const detail = criterion.evidence[0] || criterion.explanation;
+    return { label, status: criterion.status, detail };
+  };
+
+  const groups: PublicCheckGroup[] = [
+    {
+      name: "AI access",
+      question: "Can AI crawlers reach and read the site?",
+      status: "unknown",
+      checks: [
+        fromCriterion("crawl.homepage_status", "Website reachable"),
+        fromCriterion("crawl.robots", "robots.txt"),
+        {
+          label: "AI crawler rules",
+          status:
+            evidence.robots.aiAccess === "allowed"
+              ? "pass"
+              : evidence.robots.aiAccess === "blocked"
+                ? "fail"
+                : "unavailable",
+          detail:
+            evidence.robots.aiAccess === "blocked"
+              ? `Blocked: ${evidence.robots.blockedBots.join(", ")}`
+              : evidence.robots.aiAccess === "allowed"
+                ? "No blanket AI crawler block found."
+                : "Could not verify AI crawler rules.",
+        },
+      ],
+    },
+    {
+      name: "Site discovery",
+      question: "Can machines find the important pages?",
+      status: "unknown",
+      checks: [
+        fromCriterion("crawl.sitemap", "Sitemap"),
+        fromCriterion("crawl.canonical", "Canonical URL"),
+        fromCriterion("technical.internal_links", "Internal links"),
+        {
+          label: "llms.txt",
+          status: evidence.llms.status === null ? "unavailable" : evidence.llms.present ? "pass" : "fail",
+          detail: evidence.llms.present ? "Present. Informational only." : "Not found. Informational only.",
+        },
+      ],
+    },
+    {
+      name: "Machine understanding",
+      question: "Can a machine understand what each page is about?",
+      status: "unknown",
+      checks: [
+        fromCriterion("technical.readable_html", "Readable HTML"),
+        fromCriterion("technical.metadata", "Title & description"),
+        fromCriterion("technical.headings", "Headings"),
+        fromCriterion("schema.presence", "Structured data"),
+      ],
+    },
+    {
+      name: "Business clarity",
+      question: "Is it obvious who you are and what you do?",
+      status: "unknown",
+      checks: [
+        fromCriterion("entity.identity", "Business identity"),
+        fromCriterion("entity.services", "Services or products"),
+        fromCriterion("entity.people", "People / authority"),
+      ],
+    },
+    {
+      name: "Answerability",
+      question: "Can AI pull a clean answer from the site?",
+      status: "unknown",
+      checks: [
+        fromCriterion("answers.extractable_facts", "Extractable facts"),
+        fromCriterion("answers.structure", "Answer structure"),
+        fromCriterion("answers.topical_links", "Related topics"),
+      ],
+    },
+    {
+      name: "Trust & proof",
+      question: "Can AI verify the important claims?",
+      status: "unknown",
+      checks: [
+        fromCriterion("trust.credibility", "Credibility"),
+        fromCriterion("trust.contact", "Contact details"),
+        fromCriterion("trust.examples", "Examples / case studies"),
+        fromCriterion("trust.sources", "Sources / evidence"),
+      ],
+    },
+  ];
+
+  return groups.map((group) => {
+    const measured = group.checks.filter((check) => check.status !== "unavailable");
+    const failed = measured.filter((check) => check.status === "fail");
+    return {
+      ...group,
+      status: measured.length === 0 ? "unknown" : failed.length ? "needs_attention" : "good",
+    };
+  });
 }
