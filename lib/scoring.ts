@@ -618,8 +618,8 @@ function buildCheckGroups(criteria: CriterionResult[], evidence: WebsiteEvidence
         fromCriterion("technical.internal_links", "Internal links"),
         {
           label: "llms.txt",
-          status: evidence.llms.status === null ? "unavailable" : evidence.llms.present ? "pass" : "fail",
-          detail: evidence.llms.present ? "Present. Informational only." : "Not found. Informational only.",
+          status: evidence.llms.present ? "pass" : "unavailable",
+          detail: evidence.llms.present ? "Present. Informational only." : "Not found. Optional / informational.",
         },
       ],
     },
