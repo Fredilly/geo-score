@@ -156,11 +156,14 @@ async function collectRobots(url: URL, warnings: string[]) {
     const present = result.response.ok && result.body.trim().length > 0;
     const blockedBots = present ? blockedAiBotsFromRobots(result.body) : [];
 
+    const aiAccess: "allowed" | "blocked" | "unknown" =
+      !present ? "unknown" : blockedBots.length ? "blocked" : "allowed";
+
     return {
       url: result.finalUrl.toString(),
       status: result.response.status,
       present,
-      aiAccess: present ? (blockedBots.length ? "blocked" : "allowed") as const : "unknown" as const,
+      aiAccess,
       blockedBots,
     };
   } catch {
