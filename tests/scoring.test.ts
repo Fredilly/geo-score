@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { WebsiteEvidence } from "../lib/evidence.ts";
-import { SCORING_VERSION, scoreWebsiteEvidence } from "../lib/scoring.ts";
+import { MIN_SCORE_COVERAGE, SCORING_VERSION, scoreWebsiteEvidence } from "../lib/scoring.ts";
 
 function fixture(): WebsiteEvidence {
   return {
@@ -143,4 +143,30 @@ test("practical GEO check groups are always exposed", () => {
     result.checkGroups.map((group) => group.name),
     ["AI access", "Site discovery", "Machine understanding", "Business clarity", "Answerability", "Trust & proof"],
   );
+});
+
+
+test("overall score is withheld below the minimum evidence coverage", () => {
+  const result = scoreWebsiteEvidence(fixture());
+
+  assert.ok(result.assessedPoints < MIN_SCORE_COVERAGE);
+  assert.equal(result.score, null);
+  assert.equal(result.state, "insufficient_evidence");
+});
+
+test("public checks explain technical signals in plain English", () => {
+  const evidence = fixture();
+  evidence.robots = { ...evidence.robots, status: 404, present: false, aiAccess: "unknown" };
+  evidence.sitemap = { ...evidence.sitemap, status: 404, present: false };
+
+  const result = scoreWebsiteEvidence(evidence);
+  const access = result.checkGroups.find((group) => group.name === "AI access");
+  const discovery = result.checkGroups.find((group) => group.name === "Site discovery");
+  const robots = access?.checks.find((check) => check.label === "robots.txt");
+  const sitemap = discovery?.checks.find((check) => check.label === "Sitemap");
+  const llms = discovery?.checks.find((check) => check.label === "llms.txt (optional)");
+
+  assert.match(robots?.detail ?? "", /crawler instructions are unclear/i);
+  assert.match(sitemap?.detail ?? "", /less help discovering important pages/i);
+  assert.match(llms?.detail ?? "", /not part of the score/i);
 });
