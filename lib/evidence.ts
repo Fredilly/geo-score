@@ -36,8 +36,15 @@ export type WebsiteEvidence = {
   warnings: string[];
   homepage: PageEvidence | null;
   pages: PageEvidence[];
-  robots: { url: string; status: number | null; present: boolean };
+  robots: {
+    url: string;
+    status: number | null;
+    present: boolean;
+    aiAccess: "allowed" | "blocked" | "unknown";
+    blockedBots: string[];
+  };
   sitemap: { url: string; status: number | null; present: boolean };
+  llms: { url: string; status: number | null; present: boolean };
 };
 
 type SafeFetchResult = {
