@@ -9,7 +9,7 @@ type AnalysisResponse = {
     warnings?: string[];
   };
   score?: {
-    state?: "scored" | "insufficient_evidence";
+    state?: "scored" | "insufficient_evidence" | "not_applicable";
     score?: number | null;
     scoringVersion?: string;
     dimensions?: Array<{ name: string; score: number | null; coverage: number }>;
@@ -40,6 +40,9 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
   const [findings, setFindings] =
     useState<NonNullable<AnalysisResponse["score"]>["findings"]>([]);
   const [opportunityCount, setOpportunityCount] = useState(0);
+  const [businessApplicable, setBusinessApplicable] = useState(true);
+  const [checkGroups, setCheckGroups] =
+    useState<NonNullable<AnalysisResponse["score"]>["checkGroups"]>([]);
   const [showLeadForm, setShowLeadForm] = useState(false);
 
   useEffect(() => {
@@ -64,6 +67,14 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
         setDimensions(payload.score?.dimensions ?? []);
         setFindings(payload.score?.findings ?? []);
         setOpportunityCount(payload.score?.opportunityCount ?? 0);
+        setBusinessApplicable(payload.score?.businessApplicable ?? true);
+        setCheckGroups(payload.score?.checkGroups ?? []);
+
+        if (payload.score?.state === "not_applicable") {
+          setState("complete");
+          setMessage("Technical GEO checks complete. A business GEO score was not issued for this type of site.");
+          return;
+        }
 
         if (payload.evidence?.state === "partial" || payload.score?.state === "insufficient_evidence") {
           setState("partial");
@@ -147,29 +158,58 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
 
         {completed && (
           <div className="results-panel">
-            <div className="scan-result">
-              <span>Article6 GEO Diagnostic Score</span>
-              <strong>{score === null ? "Not issued" : `${score}/100`}</strong>
-            </div>
+            {businessApplicable && (
+              <div className="scan-result">
+                <span>Article6 GEO Diagnostic Score</span>
+                <strong>{score === null ? "Not issued" : `${score}/100`}</strong>
+              </div>
+            )}
 
-            <div className="dimension-grid" aria-label="Score dimensions">
-              {dimensions?.map((dimension) => (
-                <div key={dimension.name} className="dimension-card">
-                  <span>{dimension.name}</span>
-                  <strong>{dimension.score === null ? "—" : dimension.score}</strong>
-                  <small>{dimension.coverage}% measured</small>
-                </div>
+            {!businessApplicable && (
+              <div className="score-note">
+                <strong>No business score issued</strong>
+                <span>This looks more like a utility or platform than a normal business website.</span>
+              </div>
+            )}
+
+            <section className="geo-checks" aria-label="GEO checks">
+              {checkGroups?.map((group) => (
+                <details key={group.name} className="geo-check" open={group.status === "needs_attention"}>
+                  <summary>
+                    <div>
+                      <strong>{group.name}</strong>
+                      <span>{group.question}</span>
+                    </div>
+                    <b className={`geo-status geo-status-${group.status}`}>
+                      {group.status === "good" ? "Good" : group.status === "needs_attention" ? "Needs attention" : "Unknown"}
+                    </b>
+                  </summary>
+
+                  <div className="geo-check-list">
+                    {group.checks.map((check) => (
+                      <div key={check.label} className="geo-check-row">
+                        <span className={`check-dot check-dot-${check.status}`} aria-hidden="true">
+                          {check.status === "pass" ? "✓" : check.status === "fail" ? "!" : "?"}
+                        </span>
+                        <div>
+                          <strong>{check.label}</strong>
+                          <small>{check.detail}</small>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </details>
               ))}
-            </div>
+            </section>
 
-            {findings && findings.length > 0 && (
+            {businessApplicable && findings && findings.length > 0 && (
               <section className="findings">
                 <div className="findings-heading">
                   <div>
                     <p className="eyebrow">Top findings</p>
                     <h2>What is holding the site back</h2>
                   </div>
-                  {opportunityCount > 0 && <span>{opportunityCount} more opportunities</span>}
+                  {opportunityCount > 0 && <span>{opportunityCount} more</span>}
                 </div>
 
                 <div className="finding-list">
@@ -179,7 +219,6 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
                       <div>
                         <h3>{finding.title}</h3>
                         <p>{finding.explanation}</p>
-                        {finding.evidence[0] && <small>{finding.evidence[0]}</small>}
                       </div>
                     </article>
                   ))}
@@ -187,26 +226,18 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
               </section>
             )}
 
-            {showLeadForm ? (
-              <LeadForm websiteUrl={website} onCancel={() => setShowLeadForm(false)} />
-            ) : (
-              <button
-                type="button"
-                className="primary-result-cta"
-                onClick={() => setShowLeadForm(true)}
-              >
-                Improve my score →
-              </button>
+            {businessApplicable && (
+              showLeadForm ? (
+                <LeadForm websiteUrl={website} onCancel={() => setShowLeadForm(false)} />
+              ) : (
+                <button
+                  type="button"
+                  className="primary-result-cta"
+                  onClick={() => setShowLeadForm(true)}
+                >
+                  Have Article6 fix this →
+                </button>
+              )
             )}
           </div>
         )}
-
-        {state !== "loading" && (
-          <a className="secondary-button" href="/">
-            Analyze another website
-          </a>
-        )}
-      </section>
-    </main>
-  );
-}
