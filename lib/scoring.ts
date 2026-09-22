@@ -63,6 +63,8 @@ export type GeoScoreResult = {
   dimensions: PublicDimensionScore[];
   findings: PublicFinding[];
   opportunityCount: number;
+  businessApplicable: boolean;
+  checkGroups: PublicCheckGroup[];
 };
 
 type CriterionInput = Omit<CriterionResult, "earned" | "status"> & {
@@ -449,6 +451,8 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
     dimensions,
     findings,
     opportunityCount: Math.max(0, failed.length - findings.length),
+    businessApplicable,
+    checkGroups,
   };
 }
 
