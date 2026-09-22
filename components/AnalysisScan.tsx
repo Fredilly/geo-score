@@ -15,6 +15,17 @@ type AnalysisResponse = {
     dimensions?: Array<{ name: string; score: number | null; coverage: number }>;
     findings?: Array<{ id: string; title: string; explanation: string; evidence: string[] }>;
     opportunityCount?: number;
+    businessApplicable?: boolean;
+    checkGroups?: Array<{
+      name: string;
+      question: string;
+      status: "good" | "needs_attention" | "unknown";
+      checks: Array<{
+        label: string;
+        status: "pass" | "fail" | "unavailable";
+        detail: string;
+      }>;
+    }>;
   };
   error?: string;
   state?: "unavailable";
