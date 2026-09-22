@@ -252,3 +252,13 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
             )}
           </div>
         )}
+
+        {state !== "loading" && (
+          <a className="secondary-button" href="/">
+            Analyze another website
+          </a>
+        )}
+      </section>
+    </main>
+  );
+}
