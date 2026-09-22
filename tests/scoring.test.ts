@@ -40,7 +40,8 @@ function fixture(): WebsiteEvidence {
       },
     ],
     robots: { url: "https://example.com/robots.txt", status: 200, present: true, aiAccess: "allowed", blockedBots: [] },
-    sitemap: { url: "https://example.com/sitemap.xml", status: 200, present: true },\n    llms: { url: "https://example.com/llms.txt", status: 404, present: false },
+    sitemap: { url: "https://example.com/sitemap.xml", status: 200, present: true },
+    llms: { url: "https://example.com/llms.txt", status: 404, present: false },
   };
 }
 
@@ -88,7 +89,8 @@ test("low evidence coverage withholds the overall score", () => {
     },
     pages: [],
     robots: { url: "https://example.com/robots.txt", status: null, present: false, aiAccess: "unknown", blockedBots: [] },
-    sitemap: { url: "https://example.com/sitemap.xml", status: null, present: false },\n    llms: { url: "https://example.com/llms.txt", status: null, present: false },
+    sitemap: { url: "https://example.com/sitemap.xml", status: null, present: false },
+    llms: { url: "https://example.com/llms.txt", status: null, present: false },
   };
 
   const result = scoreWebsiteEvidence(sparse);
