@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isRedirectStatus, parsePageEvidence } from "../lib/evidence.ts";
+import { blockedAiBotsFromRobots, isRedirectStatus, parsePageEvidence } from "../lib/evidence.ts";
 
 test("extracts bounded page evidence without scoring it", () => {
   const html = `
@@ -48,4 +48,18 @@ test("only actual redirect status codes require a Location header", () => {
   for (const status of [200, 204, 300, 304, 305, 306, 399, 400]) {
     assert.equal(isRedirectStatus(status), false, String(status));
   }
+});
+
+
+test("detects blanket blocks for common AI crawlers", () => {
+  const robots = [
+    "User-agent: GPTBot",
+    "Disallow: /",
+    "User-agent: PerplexityBot",
+    "Disallow: /",
+    "User-agent: *",
+    "Allow: /",
+  ].join("\n");
+
+  assert.deepEqual(blockedAiBotsFromRobots(robots), ["GPTBot", "PerplexityBot"]);
 });
