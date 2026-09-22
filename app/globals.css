@@ -9,6 +9,8 @@
   --blue: #2f7cff;
   --blue-soft: rgba(47, 124, 255, 0.18);
   --green: #5ee6a8;
+  --amber: #ffb36b;
+  --red: #ff7b7b;
   --radius: 22px;
 }
 
@@ -916,4 +918,110 @@ footer {
 
 .check-dot-unavailable {
   color: var(--muted);
+}
+
+
+/* Live analysis activity */
+.scan-progress {
+  margin-top: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.scan-progress-track {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.07);
+}
+
+.scan-progress-bar {
+  position: absolute;
+  inset-block: 0;
+  width: 38%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(47,124,255,.25), var(--blue), rgba(94,230,168,.85));
+  box-shadow: 0 0 18px rgba(47,124,255,.35);
+}
+
+.scan-progress span {
+  color: #7f8ba0;
+  font-size: 11px;
+  letter-spacing: .02em;
+}
+
+.scan-stage-active {
+  background: linear-gradient(90deg, rgba(47,124,255,.055), transparent 72%);
+}
+
+.scan-stage-active span:nth-child(2) {
+  color: #dce7ff;
+}
+
+.scan-stage-done {
+  background: linear-gradient(90deg, rgba(94,230,168,.035), transparent 72%);
+}
+
+.scan-stage-error {
+  background: linear-gradient(90deg, rgba(255,123,123,.035), transparent 72%);
+}
+
+.geo-check[open] {
+  border-color: rgba(47,124,255,.14);
+}
+
+.geo-status-good {
+  box-shadow: inset 0 0 0 1px rgba(94,230,168,.08);
+}
+
+.geo-status-needs_attention {
+  box-shadow: inset 0 0 0 1px rgba(255,179,107,.08);
+}
+
+.check-dot-pass {
+  background: rgba(94,230,168,.045);
+}
+
+.check-dot-fail {
+  background: rgba(255,123,123,.045);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scan-progress-bar {
+    animation: scan-progress-sweep 1.65s ease-in-out infinite;
+  }
+
+  .scan-page::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      110deg,
+      transparent 35%,
+      rgba(47,124,255,.025) 48%,
+      rgba(94,230,168,.018) 52%,
+      transparent 65%
+    );
+    transform: translateX(-35%);
+    animation: scan-page-sweep 4.8s linear infinite;
+  }
+
+  @keyframes scan-progress-sweep {
+    0% { transform: translateX(-115%); }
+    55% { transform: translateX(95%); }
+    100% { transform: translateX(230%); }
+  }
+
+  @keyframes scan-page-sweep {
+    from { transform: translateX(-55%); }
+    to { transform: translateX(55%); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-progress-bar {
+    left: 31%;
+  }
 }

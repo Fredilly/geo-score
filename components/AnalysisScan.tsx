@@ -134,6 +134,15 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
 
         <p className="scan-message">{message}</p>
 
+        {state === "loading" && (
+          <div className="scan-progress" role="progressbar" aria-label="Website analysis in progress">
+            <div className="scan-progress-track">
+              <div className="scan-progress-bar" />
+            </div>
+            <span>Scanning live website signals</span>
+          </div>
+        )}
+
         <ol className="scan-stages" aria-label="Analysis progress">
           {STAGES.map((stage, index) => {
             const stageState =
