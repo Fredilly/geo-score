@@ -12,11 +12,12 @@ test("lead submission stays server-side and uses the Article6 intake secret", ()
   assert.match(route, /authorization:/);
 });
 
-test("lead route recalculates trusted diagnostic metadata before forwarding", () => {
-  assert.match(route, /collectWebsiteEvidence\(websiteUrl\)/);
-  assert.match(route, /scoreWebsiteEvidence\(evidence\)/);
-  assert.match(route, /scoringVersion: score\.scoringVersion/);
-  assert.match(route, /topFindings: score\.findings/);
+test("lead route derives trusted diagnostic metadata when collection succeeds and accepts manual review otherwise", () => {
+  assert.match(route, /scoreWebsiteEvidence\(await collectWebsiteEvidence\(validated\.url\.toString\(\)\)\)/);
+  assert.match(route, /overallScore: score\?\.score \?\? null/);
+  assert.match(route, /scoringVersion: score\?\.scoringVersion \?\? "manual-review"/);
+  assert.match(route, /topFindings: score\?\.findings/);
+  assert.match(route, /https:\/\/www\.article6\.org\/api\/geo-score-intake/);
 });
 
 test("done-for-you form contains the required qualification fields", () => {
