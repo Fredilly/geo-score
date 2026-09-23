@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { WebsiteEvidence } from "../lib/evidence.ts";
-import { MIN_SCORE_COVERAGE, SCORING_VERSION, scoreWebsiteEvidence } from "../lib/scoring.ts";
+import { MAX_MEASURABLE_POINTS, MIN_SCORE_COVERAGE, SCORING_VERSION, scoreWebsiteEvidence } from "../lib/scoring.ts";
 
 function fixture(): WebsiteEvidence {
   return {
@@ -62,7 +62,7 @@ test("unavailable criteria are explicit and do not count as assessed failures", 
   assert.equal(targetQuestions?.status, "unavailable");
   assert.equal(schemaTypes?.status, "unavailable");
   assert.ok(result.assessedPoints < 100);
-  assert.equal(result.coverage, result.assessedPoints);
+  assert.equal(result.coverage, Math.round((result.assessedPoints / MAX_MEASURABLE_POINTS) * 100));
 });
 
 test("every assessed criterion exposes evidence or an observable explanation", () => {
@@ -146,10 +146,42 @@ test("practical GEO check groups are always exposed", () => {
 });
 
 
-test("overall score is withheld below the minimum evidence coverage", () => {
+test("full v1 evidence can now pass the 75% measurable coverage gate", () => {
   const result = scoreWebsiteEvidence(fixture());
 
-  assert.ok(result.assessedPoints < MIN_SCORE_COVERAGE);
+  assert.ok(result.coverage >= MIN_SCORE_COVERAGE);
+  assert.equal(result.state, "scored");
+  assert.equal(typeof result.score, "number");
+});
+
+test("truncated business pages retain eligibility when clear business signals exist", () => {
+  const result = scoreWebsiteEvidence({
+    ...fixture(),
+    state: "partial",
+    homepageTruncated: true,
+    warnings: ["Homepage exceeds the collection limit."],
+  });
+  assert.equal(result.businessApplicable, true);
+  assert.equal(result.state, "scored");
+});
+
+test("truncated unknown site is never classified as a nonbusiness or given a made-up score", () => {
+  const base = fixture();
+  const result = scoreWebsiteEvidence({
+    ...base,
+    state: "partial",
+    homepageTruncated: true,
+    warnings: ["Homepage exceeds the collection limit."],
+    homepage: {
+      ...base.homepage!,
+      title: "Site",
+      description: "Explore",
+      headings: ["Welcome"],
+      readableText: "Welcome ".repeat(100),
+    },
+    pages: [],
+  });
+  assert.equal(result.businessApplicable, true);
   assert.equal(result.score, null);
   assert.equal(result.state, "insufficient_evidence");
 });
