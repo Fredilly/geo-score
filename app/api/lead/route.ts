@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { collectWebsiteEvidence } from "@/lib/evidence";
 import { scoreWebsiteEvidence } from "@/lib/scoring";
+import { normalizeAndValidatePublicUrl } from "@/lib/network-safety";
 
 export const runtime = "edge";
 
@@ -50,12 +51,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Choose a valid main goal." }, { status: 400 });
   }
 
+  // A failed automated diagnostic must not block a customer from requesting a manual review.
+  // Validate the URL even when no evidence can be collected.
+  const validated = normalizeAndValidatePublicUrl(websiteUrl);
+  if (!validated.ok) {
+    return NextResponse.json({ error: validated.error }, { status: 400 });
+  }
+
+  let score: ReturnType<typeof scoreWebsiteEvidence> | null = null;
   try {
-    const evidence = await collectWebsiteEvidence(websiteUrl);
-    const score = scoreWebsiteEvidence(evidence);
-    const categoryScores = Object.fromEntries(
-      score.dimensions.map((dimension) => [dimension.name, dimension.score]),
-    );
+    score = scoreWebsiteEvidence(await collectWebsiteEvidence(validated.url.toString()));
+  } catch {
+    // Do not fabricate diagnostic evidence; the Article6 intake accepts a null score.
+  }
+
+  try {
+    const categoryScores = score
+      ? Object.fromEntries(score.dimensions.map((dimension) => [dimension.name, dimension.score]))
+      : undefined;
 
     const response = await fetch("https://www.article6.org/api/geo-score-intake", {
       method: "POST",
@@ -71,14 +84,14 @@ export async function POST(request: NextRequest) {
         websiteUrl,
         mainGoal,
         notes: notes || undefined,
-        overallScore: score.score,
+        overallScore: score?.score ?? null,
         categoryScores,
-        topFindings: score.findings.map((finding) => ({
+        topFindings: score?.findings.map((finding) => ({
           title: finding.title,
           explanation: finding.explanation,
         })),
         analyzedAt: new Date().toISOString(),
-        scoringVersion: score.scoringVersion,
+        scoringVersion: score?.scoringVersion ?? "manual-review",
       }),
     });
 

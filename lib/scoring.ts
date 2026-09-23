@@ -2,6 +2,8 @@ import type { WebsiteEvidence } from "./evidence.ts";
 
 export const SCORING_VERSION = "geo-v1.1.0";
 export const MIN_SCORE_COVERAGE = 75;
+// The v1 rubric has 68 measurable points; the remaining 32 require richer evidence.
+export const MAX_MEASURABLE_POINTS = 68;
 
 export type CriterionStatus = "pass" | "fail" | "unavailable";
 
@@ -87,7 +89,9 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
     /(about us|our team|founder|leadership|company)/i.test(allText),
     /(clients?|customers?|case stud|portfolio)/i.test(allText),
   ].filter(Boolean).length;
-  const businessApplicable = businessSignals >= 2;
+  const businessConfirmed = businessSignals >= 2;
+  // A truncated homepage cannot establish that a site is not a business.
+  const businessApplicable = businessConfirmed || evidence.homepageTruncated === true;
 
   const criteria: CriterionInput[] = [
     {
@@ -420,9 +424,9 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
     .reduce((sum, criterion) => sum + criterion.weight, 0);
 
   const earnedPoints = results.reduce((sum, criterion) => sum + criterion.earned, 0);
-  const coverage = Math.round(assessedPoints);
+  const coverage = Math.round((assessedPoints / MAX_MEASURABLE_POINTS) * 100);
   const score =
-    businessApplicable && assessedPoints >= MIN_SCORE_COVERAGE
+    businessConfirmed && coverage >= MIN_SCORE_COVERAGE
       ? Math.round((earnedPoints / assessedPoints) * 100)
       : null;
 
@@ -443,7 +447,7 @@ export function scoreWebsiteEvidence(evidence: WebsiteEvidence): GeoScoreResult 
     state:
       !businessApplicable && hasUsableText
         ? "not_applicable"
-        : assessedPoints < MIN_SCORE_COVERAGE
+        : coverage < MIN_SCORE_COVERAGE
           ? "insufficient_evidence"
           : score === null
             ? "insufficient_evidence"
