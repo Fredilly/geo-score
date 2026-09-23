@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blockedAiBotsFromRobots, isRedirectStatus, parsePageEvidence } from "../lib/evidence.ts";
+import { blockedAiBotsFromRobots, isRedirectStatus, parsePageEvidence, readBoundedBody } from "../lib/evidence.ts";
 
 test("extracts bounded page evidence without scoring it", () => {
   const html = `
@@ -62,4 +62,24 @@ test("detects blanket blocks for common AI crawlers", () => {
   ].join("\n");
 
   assert.deepEqual(blockedAiBotsFromRobots(robots), ["GPTBot", "PerplexityBot"]);
+});
+
+test("oversized homepage can yield bounded partial evidence", async () => {
+  const response = new Response(
+    "<html><head><title>Large Site</title></head><body>" + "x".repeat(2000),
+  );
+  const result = await readBoundedBody(response, 100, true);
+  assert.equal(result.truncated, true);
+  assert.ok(new TextEncoder().encode(result.body).byteLength <= 100);
+  assert.match(result.body, /Large Site/);
+});
+
+test("oversized auxiliary resources still fail closed", async () => {
+  const response = new Response("x".repeat(2000));
+  await assert.rejects(readBoundedBody(response, 100), /response_too_large/);
+});
+
+test("ordinary homepage is not marked partial", async () => {
+  const result = await readBoundedBody(new Response("<title>Small Site</title>"), 100, true);
+  assert.deepEqual(result, { body: "<title>Small Site</title>", truncated: false });
 });

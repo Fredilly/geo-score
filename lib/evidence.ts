@@ -51,6 +51,7 @@ type SafeFetchResult = {
   response: Response;
   finalUrl: URL;
   body: string;
+  truncated: boolean;
 };
 
 export async function collectWebsiteEvidence(input: string): Promise<WebsiteEvidence> {
@@ -62,7 +63,8 @@ export async function collectWebsiteEvidence(input: string): Promise<WebsiteEvid
   let finalUrl: URL | null = null;
 
   try {
-    const home = await safeFetchText(initial.url, HOME_MAX_BYTES);
+    const home = await safeFetchText(initial.url, HOME_MAX_BYTES, true);
+    if (home.truncated) warnings.push("Homepage exceeds the collection limit. Analysis uses partial homepage evidence.");
     finalUrl = home.finalUrl;
     homepage = parsePageEvidence(home.finalUrl, home.response.status, home.body);
   } catch (error) {
@@ -206,7 +208,7 @@ async function collectAuxiliary(
   }
 }
 
-async function safeFetchText(startUrl: URL, maxBytes: number): Promise<SafeFetchResult> {
+async function safeFetchText(startUrl: URL, maxBytes: number, allowTruncation = false): Promise<SafeFetchResult> {
   let current = new URL(startUrl);
   const visited = new Set<string>();
 
@@ -240,10 +242,10 @@ async function safeFetchText(startUrl: URL, maxBytes: number): Promise<SafeFetch
       }
 
       const contentLength = Number(response.headers.get("content-length") ?? "0");
-      if (contentLength > maxBytes) throw new Error("response_too_large");
+      if (!allowTruncation && contentLength > maxBytes) throw new Error("response_too_large");
 
-      const body = await readBoundedBody(response, maxBytes);
-      return { response, finalUrl: validated.url, body };
+      const { body, truncated } = await readBoundedBody(response, maxBytes, allowTruncation);
+      return { response, finalUrl: validated.url, body, truncated: truncated || contentLength > maxBytes };
     } finally {
       clearTimeout(timeout);
     }
@@ -252,24 +254,41 @@ async function safeFetchText(startUrl: URL, maxBytes: number): Promise<SafeFetch
   throw new Error("too_many_redirects");
 }
 
-async function readBoundedBody(response: Response, maxBytes: number): Promise<string> {
-  if (!response.body) return "";
+export async function readBoundedBody(
+  response: Response,
+  maxBytes: number,
+  allowTruncation = false,
+): Promise<{ body: string; truncated: boolean }> {
+  if (!response.body) return { body: "", truncated: false };
 
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
+  let truncated = false;
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (!value) continue;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
 
-    total += value.byteLength;
-    if (total > maxBytes) {
-      await reader.cancel();
-      throw new Error("response_too_large");
+      if (total + value.byteLength > maxBytes) {
+        if (!allowTruncation) {
+          await reader.cancel();
+          throw new Error("response_too_large");
+        }
+        const remaining = maxBytes - total;
+        if (remaining > 0) chunks.push(value.subarray(0, remaining));
+        total = maxBytes;
+        truncated = true;
+        await reader.cancel();
+        break;
+      }
+      chunks.push(value);
+      total += value.byteLength;
     }
-    chunks.push(value);
+  } finally {
+    reader.releaseLock();
   }
 
   const merged = new Uint8Array(total);
@@ -279,7 +298,10 @@ async function readBoundedBody(response: Response, maxBytes: number): Promise<st
     offset += chunk.byteLength;
   }
 
-  return new TextDecoder("utf-8", { fatal: false }).decode(merged);
+  return {
+    body: new TextDecoder("utf-8", { fatal: false }).decode(merged),
+    truncated,
+  };
 }
 
 export function parsePageEvidence(url: URL, status: number, html: string): PageEvidence {
