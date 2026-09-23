@@ -246,7 +246,7 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
               </section>
             )}
 
-            {businessApplicable && (
+            {(
               showLeadForm ? (
                 <LeadForm websiteUrl={website} onCancel={() => setShowLeadForm(false)} />
               ) : (
@@ -255,9 +255,26 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
                   className="primary-result-cta"
                   onClick={() => setShowLeadForm(true)}
                 >
-                  Have Article6 fix this →
+                  {score === null ? "Ask Article6 to review this site →" : "Have Article6 fix this →"}
                 </button>
               )
+            )}
+          </div>
+        )}
+
+        {state === "error" && (
+          <div className="results-panel">
+            <p className="score-note">We could not complete the automated checks. Article6 can review this site manually.</p>
+            {showLeadForm ? (
+              <LeadForm websiteUrl={website} onCancel={() => setShowLeadForm(false)} />
+            ) : (
+              <button
+                type="button"
+                className="primary-result-cta"
+                onClick={() => setShowLeadForm(true)}
+              >
+                Ask Article6 to review this site →
+              </button>
             )}
           </div>
         )}
