@@ -64,7 +64,7 @@ export default function LeadForm({
         <p className="eyebrow">Request received</p>
         <h2>We’ll take it from here.</h2>
         <p>
-          Article6 has your website and diagnostic. We’ll review it and follow up about improving the score.
+          Article6 has your website and request. We’ll review the available evidence and follow up with you.
         </p>
       </section>
     );
