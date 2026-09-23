@@ -34,6 +34,7 @@ export type WebsiteEvidence = {
   finalUrl: string | null;
   state: "complete" | "partial";
   warnings: string[];
+  homepageTruncated?: boolean;
   homepage: PageEvidence | null;
   pages: PageEvidence[];
   robots: {
@@ -60,10 +61,12 @@ export async function collectWebsiteEvidence(input: string): Promise<WebsiteEvid
 
   const warnings: string[] = [];
   let homepage: PageEvidence | null = null;
+  let homepageTruncated = false;
   let finalUrl: URL | null = null;
 
   try {
     const home = await safeFetchText(initial.url, HOME_MAX_BYTES, true);
+    homepageTruncated = home.truncated;
     if (home.truncated) warnings.push("Homepage exceeds the collection limit. Analysis uses partial homepage evidence.");
     finalUrl = home.finalUrl;
     homepage = parsePageEvidence(home.finalUrl, home.response.status, home.body);
@@ -107,6 +110,7 @@ export async function collectWebsiteEvidence(input: string): Promise<WebsiteEvid
     finalUrl: finalUrl.toString(),
     state: warnings.length ? "partial" : "complete",
     warnings,
+    homepageTruncated,
     homepage,
     pages,
     robots,
