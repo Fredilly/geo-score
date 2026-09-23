@@ -143,7 +143,7 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
           </div>
         )}
 
-        <ol className="scan-stages" aria-label="Analysis progress">
+        <ol className={`scan-stages ${state === "loading" ? "scan-stages-loading" : ""}`} aria-label="Analysis progress">
           {STAGES.map((stage, index) => {
             const stageState =
               state === "error"
@@ -157,11 +157,18 @@ export default function AnalysisScan({ website, hostname }: { website: string; h
                     : "pending";
 
             return (
-              <li key={stage} className={`scan-stage scan-stage-${stageState}`}>
+              <li
+                key={stage}
+                className={`scan-stage scan-stage-${stageState} ${state === "loading" ? "scan-stage-scanning" : ""}`}
+                style={state === "loading" ? { animationDelay: `${index * 0.65}s` } : undefined}
+              >
                 <span className="scan-stage-icon" aria-hidden="true">
                   {stageState === "done" ? "✓" : stageState === "error" ? "!" : index + 1}
                 </span>
                 <span>{stage}</span>
+                {state === "loading" && (
+                  <span className="scan-stage-activity" aria-hidden="true"><span /></span>
+                )}
                 <small>
                   {stageState === "done"
                     ? "Complete"
