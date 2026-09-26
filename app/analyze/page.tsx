@@ -1,4 +1,4 @@
-import AnalysisScan from "@/components/AnalysisScan";
+import AnalysisExperience from "@/components/AnalysisExperience";
 import { normalizeWebsiteUrl } from "@/lib/website-url";
 
 export default async function AnalyzePage({
@@ -24,5 +24,5 @@ export default async function AnalyzePage({
 
   const hostname = new URL(result.url).hostname.replace(/^www\./, "");
 
-  return <AnalysisScan website={result.url} hostname={hostname} />;
+  return <AnalysisExperience website={result.url} hostname={hostname} />;
 }
