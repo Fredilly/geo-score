@@ -22,7 +22,7 @@ function SergePrank() {
    ██ █ ██
 `}</pre>
         <h1 style={{ margin: 0, fontFamily: "monospace", fontSize: "clamp(22px, 4vw, 48px)", maxWidth: "900px" }}>
-          Serge, you are banned from score.article6.org!
+          Serge, you are banned from signal.article6.org!
         </h1>
       </div>
     </main>
