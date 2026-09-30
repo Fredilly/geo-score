@@ -56,8 +56,9 @@ Suggested stages:
 2. Checking access
 3. Understanding the business
 4. Testing answerability
-5. Measuring trust
-6. Calculating score
+5. Testing conversational relevance
+6. Measuring trust
+7. Calculating score
 
 Keep the language simple. Do not expose the full technical audit during this stage.
 
@@ -105,12 +106,18 @@ Are claims, expertise, contact details, evidence, and business identity clear an
 ### Authority
 Is the site specific, differentiated, and useful enough to stand apart from generic content?
 
+### Conversational Discovery
+Can an AI determine when this business is relevant to a natural-language request?
+
+This is a derived diagnostic layer, not a new source of points in the 100-point GEO score. It should use observable evidence already captured across entity clarity, answerability, trust, differentiation, and crawlability.
+
 Example:
 - Access: 91
 - Understanding: 54
 - Answers: 61
 - Trust: 42
 - Authority: 70
+- Conversational Discovery: 46
 
 ## Internal Scoring Source
 
@@ -159,6 +166,31 @@ Avoid long technical explanations, unexplained schema terminology, crawl-budget 
 
 Technical evidence can exist behind expandable details later.
 
+## Conversational Discovery Diagnostic
+
+Signal should test not only whether an AI can understand the site, but whether it can recognize when the business is a relevant answer inside a natural conversation.
+
+For each site, assess whether the visible evidence clearly communicates:
+- who the business is
+- what it does
+- who it helps
+- the problems or use cases it addresses
+- geography where relevant
+- trust or proof supporting the claim
+- answer-ready language connecting the business to the intent
+
+Do not infer recommendation eligibility from keyword presence alone.
+
+User-facing framing:
+
+**Conversational Discovery**
+
+AI can understand what you sell, but it is not clear when your company should be surfaced in a natural-language request.
+
+This diagnostic is observational. It must not claim that ChatGPT or another AI system will recommend the business.
+
+---
+
 ## Free Diagnostic Boundary
 
 Do not give away the full paid audit.
@@ -167,6 +199,7 @@ The free experience should provide:
 
 - overall score
 - category scores
+- conversational discovery assessment
 - top 3 issues
 - short explanation of each
 - estimated number of additional opportunities
@@ -215,6 +248,8 @@ Focus on:
 - better answerability
 - cleaner technical indexing setup
 - stronger trust and evidence signals
+- clearer alignment between customer intent and site language
+- stronger conversational discoverability foundations
 - before/after verification
 
 Do not promise guaranteed rankings, guaranteed ChatGPT citations, guaranteed AI recommendations, guaranteed traffic, guaranteed leads, or guaranteed revenue.

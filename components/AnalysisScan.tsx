@@ -36,6 +36,7 @@ const STAGES = [
   "Checking access",
   "Understanding the business",
   "Testing answerability",
+  "Testing conversational relevance",
   "Measuring trust",
   "Calculating score",
 ] as const;

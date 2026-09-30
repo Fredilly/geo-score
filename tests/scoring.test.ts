@@ -141,10 +141,20 @@ test("practical GEO check groups are always exposed", () => {
   const result = scoreWebsiteEvidence(fixture());
   assert.deepEqual(
     result.checkGroups.map((group) => group.name),
-    ["AI access", "Site discovery", "Machine understanding", "Business clarity", "Answerability", "Trust & proof"],
+    ["AI access", "Site discovery", "Machine understanding", "Business clarity", "Conversational discovery", "Answerability", "Trust & proof"],
   );
 });
 
+
+test("conversational discovery is derived from observable existing evidence", () => {
+  const result = scoreWebsiteEvidence(fixture());
+  const conversational = result.checkGroups.find((group) => group.name === "Conversational discovery");
+
+  assert.ok(conversational);
+  assert.match(conversational.question, /natural conversation/i);
+  assert.ok(conversational.checks.some((check) => check.label === "What the business does"));
+  assert.ok(conversational.checks.some((check) => check.label === "Credibility is visible"));
+});
 
 test("full v1 evidence can now pass the 75% measurable coverage gate", () => {
   const result = scoreWebsiteEvidence(fixture());

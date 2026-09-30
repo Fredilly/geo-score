@@ -48,7 +48,7 @@ export type PublicCheck = {
 };
 
 export type PublicCheckGroup = {
-  name: "AI access" | "Site discovery" | "Machine understanding" | "Business clarity" | "Answerability" | "Trust & proof";
+  name: "AI access" | "Site discovery" | "Machine understanding" | "Business clarity" | "Conversational discovery" | "Answerability" | "Trust & proof";
   question: string;
   status: "good" | "needs_attention" | "unknown";
   checks: PublicCheck[];
@@ -734,6 +734,19 @@ function buildCheckGroups(criteria: CriterionResult[], evidence: WebsiteEvidence
         fromCriterion("entity.identity", "Business identity"),
         fromCriterion("entity.services", "Services or products"),
         fromCriterion("entity.people", "People / authority"),
+      ],
+    },
+    {
+      name: "Conversational discovery",
+      question: "Would AI know when this business is relevant in a natural conversation?",
+      status: "unknown",
+      checks: [
+        fromCriterion("entity.identity", "Who the business is"),
+        fromCriterion("entity.services", "What the business does"),
+        fromCriterion("answers.extractable_facts", "Useful facts are extractable"),
+        fromCriterion("answers.structure", "Answers are clearly structured"),
+        fromCriterion("trust.credibility", "Credibility is visible"),
+        fromCriterion("trust.examples", "Proof supports relevance"),
       ],
     },
     {
